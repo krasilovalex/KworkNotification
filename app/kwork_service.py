@@ -22,13 +22,18 @@ async def fetch_new_projects() -> List[Project]:
 
 
 def build_project_message(project: Project) -> str:
+    # Обрезаем описание, чтобы не улететь в лимит Telegram
+    desc = project.description or ""
+    if len(desc) > 700:
+        desc = desc[:700] + "…"
+
     return (
         f"<b>Новый проект на Kwork</b>\n\n"
         f"<b>{project.title}</b>\n"
         f"💰 {project.price}\n\n"
+        f"{desc}\n\n"
         f"<a href=\"{project.url}\">Открыть проект</a>"
     )
-
 
 def build_project_keyboard(project: Project) -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[

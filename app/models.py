@@ -7,4 +7,5 @@ class Project:
     title: str
     price: str
     url: str
+    description: str = ''
     
