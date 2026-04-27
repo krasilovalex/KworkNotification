@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments (Виртуальные окружения)
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Database (Базы данных SQLite)
+*.db
+kwork_bot.db
+
+# OS files (Системные файлы)
+.DS_Store
+Thumbs.db
+
+# IDEs (Настройки редакторов кода)
+.idea/
+.vscode/

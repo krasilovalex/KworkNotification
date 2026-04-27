@@ -7,6 +7,7 @@ from .kwork_service import broadcast_new_projects
 from .kwork_parser import get_projects
 from .config import ADMIN_ID
 from html import escape
+from .llm_service import generate_cover_letter
 
 
 router = Router()
@@ -98,3 +99,26 @@ async def cmd_probe(message: Message):
     await message.answer(text, disable_web_page_preview=True)
 
 
+@router.callback_query(F.data.startswith("gen:"))
+async def on_generate_cover_letter(callback: CallbackQuery):
+    project_id = callback.data.split(":", 1)[1]
+    project = get_project_by_id(project_id)
+
+    if not project:
+        await callback.answer("Проект не найден в БД", show_alert=True)
+        return
+    
+    await callback.answer("⏳ Нейросеть генерирует отклик, подожди...", show_alert=False)
+
+    cover_letter = await generate_cover_letter(project.title, project.description)
+
+
+    text = (
+        f"🤖 <b>Сгенерированный отклик</b>\n"
+        f"Проект: {project.title}\n\n"
+        f"<code>{escape(cover_letter)}</code>\n\n"
+        f"<i>(Нажми на текст отклика, чтобы скопировать его)</i>"
+    )
+
+
+    await callback.message.answer(text, parse_mode="HTML")

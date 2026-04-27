@@ -1,11 +1,39 @@
 from typing import List
-
+import re
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from .models import Project
 from .kwork_parser import get_projects
 from .db import project_exists, save_project, get_all_subscribers
+from .config import TARGET_KEYWORDS, MIN_BUDGET, STOP_WORDS
+
+
+
+def is_target_project(project: Project) -> bool:
+    full_text = f"{project.title} {project.description}".lower()
+
+    if any(stop_word.lower() in full_text for stop_word in STOP_WORDS):
+        return False
+
+    has_keyword = any(keyword.lower() in full_text for keyword in TARGET_KEYWORDS)
+    if not has_keyword:
+        return False
+    
+    if not project.price or project.price == "-":
+        return True
+
+
+    clean_price_str = project.price.replace(" ", " ")
+    numbers = re.findall(r'\d+', clean_price_str)
+
+    if numbers:
+        max_budget = max(int(num) for num in numbers)
+        if max_budget < MIN_BUDGET:
+            return False
+        
+
+    return True
 
 
 async def fetch_new_projects() -> List[Project]:
@@ -14,6 +42,9 @@ async def fetch_new_projects() -> List[Project]:
     new_projects: List[Project] = []
 
     for p in projects:
+        if not is_target_project(p):
+            continue
+
         if not project_exists(p.project_id):
             save_project(p)
             new_projects.append(p)
@@ -37,6 +68,12 @@ def build_project_message(project: Project) -> str:
 
 def build_project_keyboard(project: Project) -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🤖 Сгенерировать отклик",
+                callback_data=f"gen:{project.project_id}"
+            )
+        ],
         [
             InlineKeyboardButton(
                 text="🔔 Откликнуться",
