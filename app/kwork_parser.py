@@ -69,7 +69,8 @@ async def get_projects(category_id: str = "11") -> List[Project]:
     """
     projects: List[Project] = []
 
-    async with aiohttp.ClientSession(headers=HEADERS) as session:
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
         # 1) тянем список заказов (wants)
         form = aiohttp.FormData()
         form.add_field("c", category_id)  # категория - программирование

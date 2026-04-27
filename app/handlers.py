@@ -7,7 +7,7 @@ from .kwork_service import broadcast_new_projects
 from .kwork_parser import get_projects
 from .config import ADMIN_ID
 from html import escape
-from .llm_service import generate_cover_letter
+from .llm_service import generate_reply
 
 
 router = Router()
@@ -99,7 +99,7 @@ async def cmd_probe(message: Message):
     await message.answer(text, disable_web_page_preview=True)
 
 
-@router.callback_query(F.data.startswith("gen:"))
+@router.callback_query(F.data.startswith("gen_"))
 async def on_generate_cover_letter(callback: CallbackQuery):
     project_id = callback.data.split(":", 1)[1]
     project = get_project_by_id(project_id)

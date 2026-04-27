@@ -11,43 +11,59 @@ from .config import TARGET_KEYWORDS, MIN_BUDGET, STOP_WORDS
 
 
 def is_target_project(project: Project) -> bool:
+    """Проверяет, подходит ли проект под наши критерии, и пишет причину отказа в консоль."""
     full_text = f"{project.title} {project.description}".lower()
-
-    if any(stop_word.lower() in full_text for stop_word in STOP_WORDS):
-        return False
-
-    has_keyword = any(keyword.lower() in full_text for keyword in TARGET_KEYWORDS)
-    if not has_keyword:
-        return False
     
-    if not project.price or project.price == "-":
-        return True
-
-
-    clean_price_str = project.price.replace(" ", " ")
+    # 1. Проверка на СТОП-СЛОВА (Анти-Мусор)
+    for stop_word in STOP_WORDS:
+        if stop_word.lower() in full_text:
+            print(f"[-] ❌ Стоп-слово ('{stop_word}'): {project.title} | {project.price}")
+            return False
+    
+    # 2. Проверка на КЛЮЧЕВЫЕ СЛОВА
+    has_keyword = False
+    for keyword in TARGET_KEYWORDS:
+        if keyword.lower() in full_text:
+            has_keyword = True
+            break
+            
+    if not has_keyword:
+        print(f"[-] 🫥 Нет ключей: {project.title} | {project.price}")
+        return False
+        
+    # 3. Проверка БЮДЖЕТА
+    if not project.price or project.price == "—":
+        return True # Пропускаем "Договорную" цену
+        
+    clean_price_str = project.price.replace(" ", "")
     numbers = re.findall(r'\d+', clean_price_str)
-
+    
     if numbers:
         max_budget = max(int(num) for num in numbers)
         if max_budget < MIN_BUDGET:
+            print(f"[-] 💸 Мало денег ({max_budget} < {MIN_BUDGET}): {project.title} | {project.price}")
             return False
-        
-
+            
     return True
 
-
 async def fetch_new_projects() -> List[Project]:
-    """Парсим Kwork и возвращаем только новые проекты (которых ещё нет в БД)."""
+    """Парсим Kwork и возвращаем только новые целевые проекты."""
     projects = await get_projects()
     new_projects: List[Project] = []
 
     for p in projects:
-        if not is_target_project(p):
+        # Если проект уже в БД, пропускаем молча
+        if project_exists(p.project_id):
             continue
-
-        if not project_exists(p.project_id):
-            save_project(p)
-            new_projects.append(p)
+            
+        # Проверяем фильтр (функция сама напишет причину в консоль, если что-то не так)
+        if not is_target_project(p):
+            save_project(p) # Сохраняем мусор в БД, чтобы не проверять его снова
+            continue
+            
+        # Идеальный проект!
+        save_project(p)
+        new_projects.append(p)
 
     return new_projects
 
@@ -65,6 +81,8 @@ def build_project_message(project: Project) -> str:
         f"{desc}\n\n"
         f"<a href=\"{project.url}\">Открыть проект</a>"
     )
+
+
 
 def build_project_keyboard(project: Project) -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[

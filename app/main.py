@@ -8,6 +8,7 @@ from .config import BOT_TOKEN
 from .handlers import router
 from .db import init_db
 from .kwork_service import broadcast_new_projects
+import traceback
 
 
 POLL_INTERVAL = 60  # секунды между проверками Kwork (можешь потом увеличить до 120–180)
@@ -26,7 +27,10 @@ async def poll_kwork(bot: Bot):
             else:
                 print("😴 Новых проектов нет")
         except Exception as e:
-            print(f"Ошибка при проверке Kwork: {e}")
+            # repr(e) покажет тип ошибки (даже если текст пустой)
+            print(f"Ошибка при проверке Kwork: {repr(e)}")
+            # Эта команда выведет весь путь ошибки (красный текст), как в прошлый раз
+            traceback.print_exc()
 
         await asyncio.sleep(POLL_INTERVAL)
 
